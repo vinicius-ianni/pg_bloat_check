@@ -15,7 +15,7 @@ args_general.add_argument('-f', '--format', default="simple", choices=["simple",
 args_general.add_argument('-m', '--mode', choices=["tables", "indexes", "both"], default="both", help="""Provide bloat reports for tables, indexes or both. Index bloat is always distinct from table bloat and reported as separate entries in the report. Default is "both". NOTE: GIN indexes are not supported at this time and will be skipped.""")
 args_general.add_argument('-n', '--schema', help="Comma separated list of schema to include in report. All other schemas will be ignored.")
 args_general.add_argument('-N', '--exclude_schema', help="Comma separated list of schemas to exclude.")
-args_general.add_argument('--noanalyze', action="store_true", help="To ensure accurate fillfactor statistics, an analyze if each object being scanned is done before the check for bloat. Set this to skip the analyze step and reduce overall runtime and memory usage of the script, however your bloat statistics may not be as accurate.")
+args_general.add_argument('--noanalyze', action="store_true", help="To ensure accurate fillfactor statistics, an analyze if each object being scanned is done before the check for bloat. Set this to skip the analyze step and reduce overall runtime, however your bloat statistics may not be as accurate.")
 args_general.add_argument('--noscan', action="store_true", help="Set this option to have the script just read from the bloat statistics table without doing a scan of any tables again.")
 args_general.add_argument('-p', '--min_wasted_percentage', type=float, default=0.1, help="Minimum percentage of wasted space an object must have to be included in the report. Default and minimum value is 0.1 (DO NOT include percent sign in given value).")
 args_general.add_argument('-q', '--quick', action="store_true", help="Use the pgstattuple_approx() function instead of pgstattuple() for a quicker, but possibly less accurate bloat report. Only works for tables. Sets the 'approximate' column in the bloat statistics table to True. Note this only works in PostgreSQL 9.5+.")
@@ -166,7 +166,7 @@ def get_bloat(conn, exclude_schema_list, include_schema_list, exclude_object_lis
                     JOIN pg_catalog.pg_index i ON c.oid = i.indexrelid
                     JOIN pg_catalog.pg_am a ON c.relam = a.oid
                     WHERE c.relkind = 'i' 
-                    AND a.amname <> 'gin' """
+                    AND a.amname <> 'gin' AND a.amname <> 'brin' """
 
     if int(pg_version[0]) >= 9 and int(pg_version[1]) >= 3:
         sql_indexes += " AND indislive = 'true' "
@@ -553,7 +553,7 @@ if __name__ == "__main__":
                                     , ('dead_tuple_size_bytes', int(r['dead_tuple_size_bytes']))
                                     , ('dead_tuple_percent', str(r['dead_tuple_percent'])+"%" ) 
                                     , ('free_space_bytes', int(r['free_space_bytes']))
-                                    , ('free_percent', str(r['dead_tuple_percent'])+"%" ) 
+                                    , ('free_percent', str(r['free_percent'])+"%" ) 
                                     , ('approximate', r['approximate'])
                                    ])
                 result_list.append(result_dict)
